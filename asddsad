@@ -1,1 +1,237 @@
-1
+-- Локальный скрипт для Roblox Studio
+-- Разместите в StarterGui или StarterPack
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- Создание основного GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DupGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Создание окна загрузки
+local loadingFrame = Instance.new("Frame")
+loadingFrame.Name = "LoadingFrame"
+loadingFrame.Size = UDim2.new(0, 300, 0, 150)
+loadingFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+loadingFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+loadingFrame.BorderSizePixel = 2
+loadingFrame.BorderColor3 = Color3.new(1, 1, 1)
+loadingFrame.Active = true
+loadingFrame.Draggable = true
+loadingFrame.Parent = screenGui
+
+-- Заголовок загрузки
+local loadingText = Instance.new("TextLabel")
+loadingText.Name = "LoadingText"
+loadingText.Size = UDim2.new(1, 0, 0, 40)
+loadingText.Position = UDim2.new(0, 0, 0, 10)
+loadingText.BackgroundTransparency = 1
+loadingText.Text = "Загрузка..."
+loadingText.TextColor3 = Color3.new(1, 1, 1)
+loadingText.Font = Enum.Font.GothamBold
+loadingText.TextSize = 24
+loadingText.Parent = loadingFrame
+
+-- Прогресс бар
+local progressFrame = Instance.new("Frame")
+progressFrame.Name = "ProgressFrame"
+progressFrame.Size = UDim2.new(0.8, 0, 0, 20)
+progressFrame.Position = UDim2.new(0.1, 0, 0.5, -10)
+progressFrame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+progressFrame.BorderSizePixel = 1
+progressFrame.BorderColor3 = Color3.new(1, 1, 1)
+progressFrame.Parent = loadingFrame
+
+local progressBar = Instance.new("Frame")
+progressBar.Name = "ProgressBar"
+progressBar.Size = UDim2.new(0, 0, 1, 0)
+progressBar.BackgroundColor3 = Color3.new(1, 1, 1)
+progressBar.BorderSizePixel = 0
+progressBar.Parent = progressFrame
+
+-- Функция анимации загрузки
+local function animateLoading()
+    for i = 1, 100 do
+        progressBar.Size = UDim2.new(i/100, 0, 1, 0)
+        loadingText.Text = "Загрузка... " .. i .. "%"
+        wait(0.03)
+    end
+    wait(0.5)
+    loadingFrame.Visible = false
+end
+
+-- Создание основного меню
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 350, 0, 250)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+mainFrame.BorderSizePixel = 2
+mainFrame.BorderColor3 = Color3.new(1, 1, 1)
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+
+-- Заголовок меню
+local titleText = Instance.new("TextLabel")
+titleText.Name = "TitleText"
+titleText.Size = UDim2.new(1, 0, 0, 50)
+titleText.Position = UDim2.new(0, 0, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "ДЮПЕР v1.0"
+titleText.TextColor3 = Color3.new(1, 1, 1)
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 28
+titleText.Parent = mainFrame
+
+-- Поле ввода названия питомца
+local petInputFrame = Instance.new("Frame")
+petInputFrame.Name = "PetInputFrame"
+petInputFrame.Size = UDim2.new(0.8, 0, 0, 40)
+petInputFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
+petInputFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+petInputFrame.BorderSizePixel = 1
+petInputFrame.BorderColor3 = Color3.new(0.5, 0.5, 0.5)
+petInputFrame.Parent = mainFrame
+
+local petInputBox = Instance.new("TextBox")
+petInputBox.Name = "PetInputBox"
+petInputBox.Size = UDim2.new(1, 0, 1, 0)
+petInputBox.BackgroundTransparency = 1
+petInputBox.Text = "Введите название питомца"
+petInputBox.TextColor3 = Color3.new(1, 1, 1)
+petInputBox.Font = Enum.Font.Gotham
+petInputBox.TextSize = 16
+petInputBox.PlaceholderColor3 = Color3.new(0.7, 0.7, 0.7)
+petInputBox.ClearTextOnFocus = false
+petInputBox.Parent = petInputFrame
+
+-- Кнопка дюпа
+local dupButton = Instance.new("TextButton")
+dupButton.Name = "DupButton"
+dupButton.Size = UDim2.new(0.6, 0, 0, 50)
+dupButton.Position = UDim2.new(0.2, 0, 0.55, 0)
+dupButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+dupButton.BorderSizePixel = 1
+dupButton.BorderColor3 = Color3.new(1, 1, 1)
+dupButton.Text = "ДЮП"
+dupButton.TextColor3 = Color3.new(1, 1, 1)
+dupButton.Font = Enum.Font.GothamBold
+dupButton.TextSize = 22
+dupButton.Parent = mainFrame
+
+-- Поле статуса
+local statusFrame = Instance.new("Frame")
+statusFrame.Name = "StatusFrame"
+statusFrame.Size = UDim2.new(1, 0, 0, 60)
+statusFrame.Position = UDim2.new(0, 0, 1, -60)
+statusFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+statusFrame.BorderSizePixel = 1
+statusFrame.BorderColor3 = Color3.new(0.3, 0.3, 0.3)
+statusFrame.Visible = false
+statusFrame.Parent = mainFrame
+
+local statusText = Instance.new("TextLabel")
+statusText.Name = "StatusText"
+statusText.Size = UDim2.new(1, 0, 1, 0)
+statusText.BackgroundTransparency = 1
+statusText.Text = "Дюпаем: статус - ожидание"
+statusText.TextColor3 = Color3.new(1, 1, 1)
+statusText.Font = Enum.Font.Gotham
+statusText.TextSize = 18
+statusText.Parent = statusFrame
+
+-- Обработчики событий для текстового поля
+petInputBox.Focused:Connect(function()
+    if petInputBox.Text == "Введите название питомца" then
+        petInputBox.Text = ""
+    end
+end)
+
+petInputBox.FocusLost:Connect(function()
+    if petInputBox.Text == "" then
+        petInputBox.Text = "Введите название питомца"
+    end
+end)
+
+-- Функция дюпа
+local dupInProgress = false
+
+local function startDupProcess()
+    if dupInProgress then return end
+    
+    local petName = petInputBox.Text
+    if petName == "" or petName == "Введите название питомца" then
+        petName = "Неизвестный питомец"
+    end
+    
+    dupInProgress = true
+    dupButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    statusFrame.Visible = true
+    
+    -- Статус 1: Ожидание
+    statusText.Text = "Дюпаем '" .. petName .. "': статус - ожидание"
+    wait(25)
+    
+    if not dupInProgress then return end
+    
+    -- Статус 2: В процессе
+    statusText.Text = "Дюпаем '" .. petName .. "': статус - в процессе"
+    wait(25)
+    
+    if not dupInProgress then return end
+    
+    -- Статус 3: Неудачно (или успешно)
+    local success = math.random(1, 10) > 3 -- 70% шанс успеха
+    if success then
+        statusText.Text = "Дюпаем '" .. petName .. "': статус - успешно!"
+        statusText.TextColor3 = Color3.new(0, 1, 0)
+    else
+        statusText.Text = "Дюпаем '" .. petName .. "': статус - неудачно"
+        statusText.TextColor3 = Color3.new(1, 0, 0)
+    end
+    
+    wait(5)
+    
+    -- Сброс
+    dupInProgress = false
+    dupButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    statusText.TextColor3 = Color3.new(1, 1, 1)
+    statusFrame.Visible = false
+end
+
+-- Обработчик кнопки
+dupButton.MouseButton1Click:Connect(startDupProcess)
+
+-- Анимация наведения на кнопку
+dupButton.MouseEnter:Connect(function()
+    if not dupInProgress then
+        dupButton.BackgroundColor3 = Color3.new(0.25, 0.25, 0.25)
+    end
+end)
+
+dupButton.MouseLeave:Connect(function()
+    if not dupInProgress then
+        dupButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    end
+end)
+
+-- Инициализация
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Запуск анимации загрузки
+spawn(function()
+    animateLoading()
+    mainFrame.Visible = true
+end)
+
+print("Дюп интерфейс загружен!")
+print("Инструкции:")
+print("1. Введите название питомца в поле ввода")
+print("2. Нажмите кнопку 'ДЮП'")
+print("3. Следите за статусом внизу окна")
+print("4. Окно можно перемещать мышкой")
